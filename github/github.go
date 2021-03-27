@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"sync"
 
 	"github.com/willmadison/ossexplorer"
 
@@ -21,14 +22,15 @@ func (g *GitHubExplorer) FindOrganization(ctx context.Context, name string) (oss
 	}
 
 	return ossexplorer.Organization{
-		Name: *org.Login,
+		Name: org.GetLogin(),
 	}, nil
 }
 
 func (g *GitHubExplorer) FindRepositoriesFor(ctx context.Context, org ossexplorer.Organization, modifiers ...ossexplorer.RepositoryResultModifier) ([]ossexplorer.Repository, error) {
 	options := &gh.RepositoryListByOrgOptions{
+		Type: "sources",
 		ListOptions: gh.ListOptions{
-			PerPage: 10,
+			PerPage: 100,
 		},
 	}
 
@@ -51,20 +53,31 @@ func (g *GitHubExplorer) FindRepositoriesFor(ctx context.Context, org ossexplore
 		options.Page = resp.NextPage
 	}
 
+	var wg sync.WaitGroup
+
 	for _, r := range allRepos {
-		pulls, err := g.getPullRequestCount(ctx, org.Name, r.GetName())
+		wg.Add(1)
 
-		if err != nil {
-			return repositories, err
-		}
+		go func(r *gh.Repository) {
+			defer wg.Done()
 
-		repositories = append(repositories, ossexplorer.Repository{
-			Name:         r.GetName(),
-			Forks:        r.GetForksCount(),
-			Stars:        r.GetStargazersCount(),
-			PullRequests: pulls,
-		})
+			pulls, err := g.getPullRequestCount(ctx, org.Name, r.GetName())
+
+			if err != nil {
+				return
+			}
+
+			repositories = append(repositories, ossexplorer.Repository{
+				Name:         r.GetName(),
+				Forks:        r.GetForksCount(),
+				Stars:        r.GetStargazersCount(),
+				PullRequests: pulls,
+			})
+
+		}(r)
 	}
+
+	wg.Wait()
 
 	if len(modifiers) > 0 {
 		for _, mod := range modifiers {
@@ -81,7 +94,7 @@ func (g *GitHubExplorer) getPullRequestCount(ctx context.Context, org, repo stri
 	options := &gh.PullRequestListOptions{
 		State: "all",
 		ListOptions: gh.ListOptions{
-			PerPage: 10,
+			PerPage: 100,
 		},
 	}
 
