@@ -20,6 +20,10 @@ type Repository struct {
 }
 
 func (r Repository) ContributionRate() float64 {
+	if r.Forks == 0 {
+		return 0
+	}
+
 	return float64(r.PullRequests) / float64(r.Forks)
 }
 

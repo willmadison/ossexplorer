@@ -66,6 +66,14 @@ func (g *GitHubExplorer) FindRepositoriesFor(ctx context.Context, org ossexplore
 		})
 	}
 
+	if len(modifiers) > 0 {
+		for _, mod := range modifiers {
+			if mod != nil {
+				repositories = mod(repositories)
+			}
+		}
+	}
+
 	return repositories, nil
 }
 

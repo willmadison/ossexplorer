@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"text/tabwriter"
 
 	"github.com/alecthomas/kong"
 	"github.com/willmadison/ossexplorer"
@@ -21,15 +23,68 @@ type Context struct {
 }
 
 type ReposCmd struct {
-	Org   string `arg required help:"The organization to explore/search."`
-	Sort  string `arg help:"The axis by which our exploratory results should be sorted (stars|forks|pulls|contrib_rate)." default:"stars"`
-	Order string `arg help:"The orientation of which our exploratory results should be sorted (desc|asc)." default:"desc"`
+	Org        string `arg required help:"The organization to explore/search."`
+	Sort       string `arg help:"The axis by which our exploratory results should be sorted (stars|forks|pulls|contrib_rate). (default=stars)" default:"stars"`
+	Order      string `arg help:"The orientation of which our exploratory results should be sorted (desc|asc). (default=desc)" default:"desc"`
+	MaxResults int    `arg help:"The maximum number of results we'd like to limit our display to. (default=10)" default:"10"`
 }
 
 func (cmd *ReposCmd) Run(ctx *Context) error {
-	fmt.Println("Org =", cmd.Org)
-	fmt.Println("Sort =", cmd.Sort)
-	fmt.Println("Order =", cmd.Order)
+	cntx := context.Background()
+	organization, err := ctx.explorer.FindOrganization(cntx, cmd.Org)
+
+	if err != nil {
+		fmt.Fprintf(ctx.env.Stderr, "Unable to locate the given organization (%v). Please ensure you have access and that it exists.\n", cmd.Org)
+		return nil
+	}
+
+	var modifier ossexplorer.RepositoryResultModifier
+
+	switch cmd.Sort + "_" + cmd.Order {
+	case "stars_asc":
+		modifier = ossexplorer.ByStarsAscending
+	case "stars_desc":
+		modifier = ossexplorer.ByStarsDescending
+	case "forks_asc":
+		modifier = ossexplorer.ByForksAscending
+	case "forks_desc":
+		modifier = ossexplorer.ByForksDescending
+	case "pulls_asc":
+		modifier = ossexplorer.ByPullRequestsAscending
+	case "pulls_desc":
+		modifier = ossexplorer.ByPullRequestsDescending
+	case "contrib_rate_asc":
+		modifier = ossexplorer.ByContributionRateAscending
+	case "contrib_rate_desc":
+		modifier = ossexplorer.ByContributionRateDescending
+	}
+
+	repos, err := ctx.explorer.FindRepositoriesFor(cntx, organization, modifier)
+
+	if err != nil {
+		fmt.Fprintf(ctx.env.Stderr, "Repository lookup failed for %v. Please ensure you have read access to this organization's repositories.\n", cmd.Org)
+		return nil
+	}
+
+	if len(repos) == 0 {
+		fmt.Fprintf(ctx.env.Stdout, "No repositories found for %v. Nothing to do here but chill 😎...\n", cmd.Org)
+		return nil
+	}
+
+	w := tabwriter.NewWriter(ctx.env.Stdout, 0, 0, 1, ' ', tabwriter.DiscardEmptyColumns|tabwriter.AlignRight)
+
+	fmt.Fprintln(w, "#\tRepository\t# Stars\t# Forks\t# Pull Requests\tContribution %\t")
+	fmt.Fprintln(w, "_\t__________\t_______\t_______\t_______________\t______________\t")
+
+	for i, repo := range repos {
+		if i == cmd.MaxResults {
+			break
+		}
+
+		fmt.Fprintf(w, "%d\t%v\t%v\t%v\t%v\t%.2f%%\t\n", i+1, repo.Name, repo.Stars, repo.Forks, repo.PullRequests, repo.ContributionRate()*100)
+	}
+
+	w.Flush()
 
 	return nil
 }
