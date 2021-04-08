@@ -15,7 +15,7 @@ import (
 )
 
 func TestItReturnsSuccessForProperlyFormattedArguments(t *testing.T) {
-	os.Args = []string{"explore", "repos", "DummyOrg", "stars", "asc", "1"}
+	os.Args = []string{"explore", "repos", "DummyOrg", "--sort=stars", "--order=asc", "--max-results=1"}
 
 	stdin, _ := io.Pipe()
 	stdout := &bytes.Buffer{}
@@ -83,14 +83,14 @@ func TestItDisplaysFoundReposSortedAppropriately(t *testing.T) {
  1 DummyRepo2      10      25               2          8.00%
  2 DummyRepo1       5       6              10        166.67%
 `
-	assert.Equal(t, expectedOutput, stdout.String(), "we should have gotten the appropriate output")
-
 	<-quit
+
+	assert.Equal(t, expectedOutput, stdout.String(), "we should have gotten the appropriate output")
 	assert.Equal(t, 0, returnCode, "there should be no errors here")
 }
 
 func TestItDisplaysLimitedResultsAccordingToGivenConstraints(t *testing.T) {
-	os.Args = []string{"explore", "repos", "DummyOrg", "stars", "desc", "1"}
+	os.Args = []string{"explore", "repos", "DummyOrg", "--sort=stars", "--order=desc", "--max-results=1"}
 
 	stdin, _ := io.Pipe()
 	stdout := &bytes.Buffer{}
@@ -130,7 +130,7 @@ func TestItDisplaysLimitedResultsAccordingToGivenConstraints(t *testing.T) {
 }
 
 func TestItDisplaysAnUnableToFindOrganizationMessageInTheEventThatWeCannotFindAnOrg(t *testing.T) {
-	os.Args = []string{"explore", "repos", "DummyOrg", "stars", "desc", "1"}
+	os.Args = []string{"explore", "repos", "DummyOrg", "--sort=stars", "--order=desc", "--max-results=1"}
 
 	stdin, _ := io.Pipe()
 	stdout := &bytes.Buffer{}
@@ -163,7 +163,7 @@ func TestItDisplaysAnUnableToFindOrganizationMessageInTheEventThatWeCannotFindAn
 }
 
 func TestItDisplaysARepositoryLookupFailureMessageInTheEventThatWeCannotFindAnyRepositoriesForAGivenOrg(t *testing.T) {
-	os.Args = []string{"explore", "repos", "DummyOrg", "stars", "desc", "1"}
+	os.Args = []string{"explore", "repos", "DummyOrg", "--sort=stars", "--order=desc", "--max-results=1"}
 
 	stdin, _ := io.Pipe()
 	stdout := &bytes.Buffer{}
@@ -195,7 +195,7 @@ func TestItDisplaysARepositoryLookupFailureMessageInTheEventThatWeCannotFindAnyR
 }
 
 func TestItDisplaysANoRepositoriesFoundMessageWhenAnOrgHasNoRepos(t *testing.T) {
-	os.Args = []string{"explore", "repos", "DummyOrg", "stars", "desc", "1"}
+	os.Args = []string{"explore", "repos", "DummyOrg", "--sort=stars", "--order=desc", "--max-results=1"}
 
 	stdin, _ := io.Pipe()
 	stdout := &bytes.Buffer{}
@@ -230,7 +230,7 @@ func TestItDisplaysANoRepositoriesFoundMessageWhenAnOrgHasNoRepos(t *testing.T) 
 }
 
 func TestItDisplaysANoRepositoriesFoundMessageWhenAnOrgHasNilRepos(t *testing.T) {
-	os.Args = []string{"explore", "repos", "DummyOrg", "stars", "desc", "1"}
+	os.Args = []string{"explore", "repos", "DummyOrg", "--sort=stars", "--order=desc", "--max-results=1"}
 
 	stdin, _ := io.Pipe()
 	stdout := &bytes.Buffer{}

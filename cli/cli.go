@@ -24,9 +24,9 @@ type Context struct {
 
 type ReposCmd struct {
 	Org        string `arg required help:"The organization to explore/search."`
-	Sort       string `arg help:"The axis by which our exploratory results should be sorted (stars|forks|pulls|contrib_rate). (default=stars)" default:"stars"`
-	Order      string `arg help:"The orientation of which our exploratory results should be sorted (desc|asc). (default=desc)" default:"desc"`
-	MaxResults int    `arg help:"The maximum number of results we'd like to limit our display to. (default=10)" default:"10"`
+	Sort       string `help:"The axis by which our exploratory results should be sorted (stars|forks|pulls|contrib_rate). (default=stars)" default:"stars"`
+	Order      string `help:"The orientation of which our exploratory results should be sorted (desc|asc). (default=desc)" default:"desc"`
+	MaxResults int    `help:"The maximum number of results we'd like to limit our display to. (default=10)" default:"10"`
 }
 
 func (cmd *ReposCmd) Run(ctx *Context) error {
